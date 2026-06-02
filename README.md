@@ -6,6 +6,12 @@ Validates Databricks SQL, PySpark, and Jupyter notebook files against the ISCA D
 
 ## Step 1 — Install the tool
 
+In windows powershell, navigate to the project root.
+
+```powershell
+cd "C:\Users\10320283\OneDrive - BD\Documents\Github\isca-validator"
+```
+
 From the project root, run once to install it in editable mode:
 
 ```powershell
@@ -25,7 +31,7 @@ python -m isca_validator <file>
 Point the validator at any `.sql`, `.py`, or `.ipynb` file:
 
 ```powershell
-isca-validate path\to\my_notebook.sql
+tests\samples\bad_notebook.sql
 ```
 
 The report prints to the terminal and looks like this:
