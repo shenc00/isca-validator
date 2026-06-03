@@ -53,9 +53,17 @@ def _read_ipynb(path: str) -> Tuple[List[str], bool]:
 
 
 class Validator:
-    def __init__(self, path: str):
-        self.path = path
-        self.lines, self.is_python = _read_lines(path)
+    def __init__(self, path: str | None = None, *, lines: List[str] | None = None, is_python: bool = False):
+        if lines is not None:
+            # In-memory content (e.g. fetched from Databricks API)
+            self.path = path or "<databricks>"
+            self.lines = lines
+            self.is_python = is_python
+        else:
+            if path is None:
+                raise ValueError("Either path or lines must be provided.")
+            self.path = path
+            self.lines, self.is_python = _read_lines(path)
 
     def validate(self) -> List[Violation]:
         """Run all applicable rules and return a flat list of violations."""
