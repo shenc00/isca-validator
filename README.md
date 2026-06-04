@@ -174,7 +174,7 @@ The `--databricks` flag fetches a notebook from your Databricks workspace via th
 **Step 1 — Generate a personal access token in Databricks**
 
 1. Log in to your Databricks workspace
-2. Click your username (top right) → **Settings** → **Developer**
+2. Click your profile icon (top right) → **Settings** → **Developer**
 3. Under **Access tokens**, click **Generate new token**
 4. Give it a name (e.g. `isca-validator`) and set an expiry
 5. Copy the token — it is only shown once
@@ -186,52 +186,44 @@ $env:DATABRICKS_HOST  = "https://adb-1234567890.12.azuredatabricks.net"
 $env:DATABRICKS_TOKEN = "dapi1234abcd..."
 ```
 
+Your `DATABRICKS_HOST` is the base URL of your workspace — visible in your browser's address bar when logged in.
+
 To make these permanent, add them via **System Properties → Environment Variables → User variables**.
 
-> `DATABRICKS_HOST` is only needed when passing a workspace path. If you pass the full notebook URL, the host is extracted automatically from the URL.
+**Step 3 — Get the notebook workspace path**
 
-**Step 3 — Get your notebook URL or workspace path**
+1. In Databricks, go to **Workspace** in the left sidebar
+2. Navigate to and **right-click** your notebook
+3. Select **Copy URL/path → Full path**
 
-The easiest method is to **copy the URL from your browser** while the notebook is open:
-
-```
-https://adb-1386411820308965.5.azuredatabricks.net/editor/notebooks/1243119985943256?o=1386411820308965
-```
-
-You can pass this URL directly — the tool extracts the host and notebook ID automatically.
-
-Alternatively, right-click the notebook in the sidebar → **Copy path** to get the workspace path:
+This gives you the workspace path:
 
 ```
-/Users/sally.shen@company.com/proj_DataProducts/nb_salespurchase_orders_apex
+/Workspace/FreightwiseApp/ISC-Freightwise/src/proj_DataProducts/nb_salespurchase_orders_apex
 ```
+
+> **Note:** Do not use the browser URL or the "URL" option — the Databricks API requires the full workspace path, not a notebook ID.
 
 ---
 
 ### Usage — Databricks Mode
 
-**Validate using the full notebook URL (copy from browser):**
+**Validate a notebook directly from Databricks:**
 
 ```powershell
-isca-validate --databricks "https://adb-1386411820308965.5.azuredatabricks.net/editor/notebooks/1243119985943256?o=1386411820308965"
-```
-
-**Validate using workspace path (right-click → Copy path):**
-
-```powershell
-isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi"
+isca-validate --databricks "/Workspace/FreightwiseApp/ISC-Freightwise/src/proj_DataProducts/nb_salespurchase_orders_apex"
 ```
 
 **Validate and save the report to a file:**
 
 ```powershell
-isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi" --report-out report.txt
+isca-validate --databricks "/Workspace/FreightwiseApp/ISC-Freightwise/src/proj_DataProducts/nb_salespurchase_orders_apex" --report-out report.txt
 ```
 
 **Validate and save an auto-fixed version locally:**
 
 ```powershell
-isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi" --fix
+isca-validate --databricks "/Workspace/FreightwiseApp/ISC-Freightwise/src/proj_DataProducts/nb_salespurchase_orders_apex" --fix
 ```
 
 The fixed file is saved in your current directory as `<notebook_name>_fixed.sql` or `<notebook_name>_fixed.py`. The original notebook in Databricks is never modified.
@@ -239,13 +231,13 @@ The fixed file is saved in your current directory as `<notebook_name>_fixed.sql`
 **Save the fixed script to a specific path:**
 
 ```powershell
-isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi" --fix-out "C:\Scripts\nb_isca_otif_kpi_fixed.sql"
+isca-validate --databricks "/Workspace/.../nb_salespurchase_orders_apex" --fix-out "C:\Scripts\nb_fixed.sql"
 ```
 
 **Suppress the report (validate only for CI exit code):**
 
 ```powershell
-isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi" --no-report
+isca-validate --databricks "/Workspace/.../nb_salespurchase_orders_apex" --no-report
 ```
 
 ---
@@ -253,7 +245,7 @@ isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi"
 ### How It Works
 
 ```
-isca-validate --databricks /path/to/notebook
+isca-validate --databricks "/Workspace/path/to/notebook"
        │
        ├─ GET /api/2.0/workspace/get-status   → detect SQL or Python
        ├─ GET /api/2.0/workspace/export       → fetch source (base64)
@@ -274,12 +266,9 @@ isca-validate my_notebook.sql --fix
 isca-validate my_notebook.sql --report-out report.txt
 isca-validate my_notebook.sql --fix --report-out report.txt --exit-zero
 
-# Databricks — using full notebook URL (copy from browser)
-isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>"
-isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>" --fix
-isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>" --report-out report.txt
-
-# Databricks — using workspace path (right-click notebook → Copy path)
-isca-validate --databricks "/Users/me/my_notebook"
-isca-validate --databricks "/Users/me/my_notebook" --fix-out fixed.sql --exit-zero
+# Databricks (right-click notebook → Copy URL/path → Full path)
+isca-validate --databricks "/Workspace/MyApp/project/my_notebook"
+isca-validate --databricks "/Workspace/MyApp/project/my_notebook" --fix
+isca-validate --databricks "/Workspace/MyApp/project/my_notebook" --report-out report.txt
+isca-validate --databricks "/Workspace/MyApp/project/my_notebook" --fix-out fixed.sql --exit-zero
 ```
