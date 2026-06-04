@@ -112,18 +112,30 @@ def _load_from_databricks(workspace_path: str, parser: argparse.ArgumentParser) 
     return Validator(path=label, lines=lines, is_python=is_python)
 
 
-def _resolve_fix_out(args: argparse.Namespace, v: Validator) -> "str | None":
+_FIXER_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fixer")
+
+
+def _resolve_fix_out(args: argparse.Namespace, v: Validator) -> str:
     """
-    When fixing a Databricks-fetched notebook, auto-generate a local output filename
-    since the Databricks workspace path cannot be used as a local path.
+    Resolve the output path for the fixed script.
+    Defaults to the 'fixer/' folder in the project root.
+    The folder is created automatically if it does not exist.
     """
     if args.fix_out:
+        out_dir = os.path.dirname(args.fix_out)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         return args.fix_out
+
+    os.makedirs(_FIXER_DIR, exist_ok=True)
+
     if args.databricks:
         nb_name = args.databricks.rstrip("/").split("/")[-1]
-        ext = ".py" if v.is_python else ".sql"
-        return f"{nb_name}_fixed{ext}"
-    return None  # validator.save_fixed() will derive it from self.path
+    else:
+        nb_name = os.path.splitext(os.path.basename(v.path))[0]
+
+    ext = ".py" if v.is_python else ".sql"
+    return os.path.join(_FIXER_DIR, f"{nb_name}_fixed{ext}")
 
 
 if __name__ == "__main__":
