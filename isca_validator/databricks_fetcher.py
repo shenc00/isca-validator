@@ -78,41 +78,13 @@ def _parse_notebook_url(url: str) -> Tuple[str, str]:
     )
 
 
-def _resolve_path_from_id(host: str, token: str, object_id: str) -> str:
-    """
-    Resolve the workspace path for a notebook from its object ID.
-    Uses get-status with object_id parameter (supported in Databricks Runtime 10.4+).
-    """
-    try:
-        result = _api_get(
-            host, token,
-            "/api/2.0/workspace/get-status",
-            {"object_id": object_id},
-        )
-        path = result.get("path")
-        if path:
-            return path
-    except RuntimeError as exc:
-        raise RuntimeError(
-            f"Could not resolve workspace path from notebook ID '{object_id}'.\n"
-            f"API response: {exc}\n\n"
-            "Tip: Right-click the notebook in the Databricks sidebar → Copy path, "
-            "then pass that path with --databricks instead of the URL."
-        ) from exc
-
-    raise RuntimeError(
-        f"API returned no path for notebook ID '{object_id}'.\n"
-        "Right-click the notebook in the Databricks sidebar → Copy path."
-    )
-
-
 def fetch_notebook(input_str: str) -> Tuple[List[str], bool, str]:
     """
     Fetch a notebook from the Databricks workspace.
 
-    input_str can be:
-      - A workspace path:       /Users/me/folder/my_notebook
-      - A full Databricks URL:  https://adb-xxx.net/editor/notebooks/<id>
+    input_str must be a workspace path, e.g.:
+      /Users/me/folder/my_notebook
+      /Shared/folder/my_notebook
 
     Returns:
         (lines, is_python, display_label)
@@ -122,18 +94,22 @@ def fetch_notebook(input_str: str) -> Tuple[List[str], bool, str]:
     """
     token = _require_env("DATABRICKS_TOKEN")
 
-    # Determine host and workspace path
     if input_str.startswith("http://") or input_str.startswith("https://"):
-        # Full URL provided — extract host and resolve path from object ID
         host, object_id = _parse_notebook_url(input_str)
-        print(f"  Detected notebook ID: {object_id}")
-        print(f"  Resolving workspace path...")
-        workspace_path = _resolve_path_from_id(host, token, object_id)
-        print(f"  Workspace path: {workspace_path}")
-    else:
-        # Workspace path provided directly
-        host = _require_env("DATABRICKS_HOST")
-        workspace_path = input_str
+        raise RuntimeError(
+            f"Notebook URLs are not supported by the Databricks API — "
+            f"a workspace path is required.\n\n"
+            f"  Detected host     : {host}\n"
+            f"  Detected notebook : {object_id}\n\n"
+            "To get the workspace path:\n"
+            "  1. In Databricks, go to Workspace in the left sidebar\n"
+            "  2. Right-click your notebook\n"
+            "  3. Select 'Copy path'\n"
+            "  4. Re-run with: --databricks \"/Users/your.email/folder/notebook_name\""
+        )
+
+    host = _require_env("DATABRICKS_HOST")
+    workspace_path = input_str
 
     display_label = f"{host.rstrip('/')}{workspace_path}"
 
