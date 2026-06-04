@@ -7,3 +7,5 @@ build/
 .pytest_cache/
 fixer/*
 !fixer/.gitkeep
+
+.claude/settings.local.json
