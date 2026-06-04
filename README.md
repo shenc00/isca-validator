@@ -188,19 +188,35 @@ $env:DATABRICKS_TOKEN = "dapi1234abcd..."
 
 To make these permanent, add them via **System Properties → Environment Variables → User variables**.
 
-**Step 3 — Find your notebook's workspace path**
+> `DATABRICKS_HOST` is only needed when passing a workspace path. If you pass the full notebook URL, the host is extracted automatically from the URL.
 
-In the Databricks UI, open your notebook and look at the browser URL or the breadcrumb path at the top. The workspace path looks like:
+**Step 3 — Get your notebook URL or workspace path**
+
+The easiest method is to **copy the URL from your browser** while the notebook is open:
 
 ```
-/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi
+https://adb-1386411820308965.5.azuredatabricks.net/editor/notebooks/1243119985943256?o=1386411820308965
+```
+
+You can pass this URL directly — the tool extracts the host and notebook ID automatically.
+
+Alternatively, right-click the notebook in the sidebar → **Copy path** to get the workspace path:
+
+```
+/Users/sally.shen@company.com/proj_DataProducts/nb_salespurchase_orders_apex
 ```
 
 ---
 
 ### Usage — Databricks Mode
 
-**Validate a notebook directly from Databricks:**
+**Validate using the full notebook URL (copy from browser):**
+
+```powershell
+isca-validate --databricks "https://adb-1386411820308965.5.azuredatabricks.net/editor/notebooks/1243119985943256?o=1386411820308965"
+```
+
+**Validate using workspace path (right-click → Copy path):**
 
 ```powershell
 isca-validate --databricks "/Users/sally.shen@company.com/OTIF/nb_isca_otif_kpi"
@@ -258,9 +274,12 @@ isca-validate my_notebook.sql --fix
 isca-validate my_notebook.sql --report-out report.txt
 isca-validate my_notebook.sql --fix --report-out report.txt --exit-zero
 
-# Databricks (no download)
+# Databricks — using full notebook URL (copy from browser)
+isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>"
+isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>" --fix
+isca-validate --databricks "https://adb-xxx.azuredatabricks.net/editor/notebooks/<id>" --report-out report.txt
+
+# Databricks — using workspace path (right-click notebook → Copy path)
 isca-validate --databricks "/Users/me/my_notebook"
-isca-validate --databricks "/Users/me/my_notebook" --fix
-isca-validate --databricks "/Users/me/my_notebook" --report-out report.txt
 isca-validate --databricks "/Users/me/my_notebook" --fix-out fixed.sql --exit-zero
 ```

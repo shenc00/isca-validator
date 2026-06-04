@@ -2,8 +2,13 @@
 Databricks Workspace API integration.
 Fetches notebook source directly without downloading to local disk.
 
+Accepts either:
+  - A workspace path:  /Users/me/folder/my_notebook
+  - A full notebook URL: https://adb-xxx.azuredatabricks.net/editor/notebooks/1243119985943256
+
 Required environment variables:
     DATABRICKS_HOST   Full workspace URL, e.g. https://adb-1234567890.12.azuredatabricks.net
+                      (auto-extracted when a full URL is passed as the notebook argument)
     DATABRICKS_TOKEN  Personal access token or service principal token
 """
 import base64
@@ -43,26 +48,96 @@ def _api_get(host: str, token: str, endpoint: str, params: dict) -> dict:
         raise RuntimeError(f"Databricks API error {exc.code}: {msg}") from exc
 
 
-def fetch_notebook(workspace_path: str) -> Tuple[List[str], bool, str]:
+def _parse_notebook_url(url: str) -> Tuple[str, str]:
+    """
+    Parse a full Databricks notebook URL into (host, object_id).
+
+    Handles formats:
+      https://adb-xxx.net/editor/notebooks/1243119985943256?o=...
+      https://adb-xxx.net/#notebook/1243119985943256
+    """
+    parsed = urllib.parse.urlparse(url)
+    host = f"{parsed.scheme}://{parsed.netloc}"
+
+    # Format 1: /editor/notebooks/<id>
+    path_parts = parsed.path.rstrip("/").split("/")
+    for part in reversed(path_parts):
+        if part.isdigit():
+            return host, part
+
+    # Format 2: fragment like #notebook/1243119985943256
+    fragment = parsed.fragment
+    if "/" in fragment:
+        frag_id = fragment.split("/")[-1]
+        if frag_id.isdigit():
+            return host, frag_id
+
+    raise RuntimeError(
+        f"Could not extract a notebook ID from URL: {url}\n"
+        "Expected format: https://<workspace>.azuredatabricks.net/editor/notebooks/<id>"
+    )
+
+
+def _resolve_path_from_id(host: str, token: str, object_id: str) -> str:
+    """
+    Resolve the workspace path for a notebook from its object ID.
+    Uses get-status with object_id parameter (supported in Databricks Runtime 10.4+).
+    """
+    try:
+        result = _api_get(
+            host, token,
+            "/api/2.0/workspace/get-status",
+            {"object_id": object_id},
+        )
+        path = result.get("path")
+        if path:
+            return path
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"Could not resolve workspace path from notebook ID '{object_id}'.\n"
+            f"API response: {exc}\n\n"
+            "Tip: Right-click the notebook in the Databricks sidebar → Copy path, "
+            "then pass that path with --databricks instead of the URL."
+        ) from exc
+
+    raise RuntimeError(
+        f"API returned no path for notebook ID '{object_id}'.\n"
+        "Right-click the notebook in the Databricks sidebar → Copy path."
+    )
+
+
+def fetch_notebook(input_str: str) -> Tuple[List[str], bool, str]:
     """
     Fetch a notebook from the Databricks workspace.
 
+    input_str can be:
+      - A workspace path:       /Users/me/folder/my_notebook
+      - A full Databricks URL:  https://adb-xxx.net/editor/notebooks/<id>
+
     Returns:
         (lines, is_python, display_label)
-        lines        — source lines ready for the Validator
-        is_python    — True for Python notebooks, False for SQL
-        display_label — human-readable label for reports (host + path)
 
     Raises:
-        RuntimeError if env vars are missing, the API call fails,
-        or the notebook language is unsupported.
+        RuntimeError on any failure.
     """
-    host = _require_env("DATABRICKS_HOST")
     token = _require_env("DATABRICKS_TOKEN")
+
+    # Determine host and workspace path
+    if input_str.startswith("http://") or input_str.startswith("https://"):
+        # Full URL provided — extract host and resolve path from object ID
+        host, object_id = _parse_notebook_url(input_str)
+        print(f"  Detected notebook ID: {object_id}")
+        print(f"  Resolving workspace path...")
+        workspace_path = _resolve_path_from_id(host, token, object_id)
+        print(f"  Workspace path: {workspace_path}")
+    else:
+        # Workspace path provided directly
+        host = _require_env("DATABRICKS_HOST")
+        workspace_path = input_str
 
     display_label = f"{host.rstrip('/')}{workspace_path}"
 
-    # Step 1 — resolve notebook language
+    # Step 1 — get notebook language
     status = _api_get(
         host, token,
         "/api/2.0/workspace/get-status",
