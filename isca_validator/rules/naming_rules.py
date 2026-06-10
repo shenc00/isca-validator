@@ -13,11 +13,11 @@ _VALID_WORD_ALIASES = {
 
 _AS_ALIAS_RE = re.compile(r'\bAS\s+([A-Za-z_`"][A-Za-z0-9_`"]*)', re.IGNORECASE)
 _CREATE_VIEW_RE = re.compile(
-    r'\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:(TEMPORARY|TEMP)\s+)?VIEW\s+([^\s(]+)',
+    r'\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:(TEMPORARY|TEMP)\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?([^\s(]+)',
     re.IGNORECASE,
 )
 _CREATE_TABLE_RE = re.compile(
-    r'\bCREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+([^\s(]+)',
+    r'\bCREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([^\s(]+)',
     re.IGNORECASE,
 )
 
